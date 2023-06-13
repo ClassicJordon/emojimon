@@ -6,23 +6,73 @@ import { SetupNetworkResult } from "./setupNetwork";
 
 export type SystemCalls = ReturnType<typeof createSystemCalls>;
 
+const entityError = "no player!";
+
 export function createSystemCalls(
   { singletonEntity, playerEntity, worldSend, txReduced$ }: SetupNetworkResult,
-  components: ClientComponents
+  { Player, Position }: ClientComponents
 ) {
   const moveTo = async (x: number, y: number) => {
-    // TODO
-    return null as any;
+    if(!playerEntity) {
+      throw new Error(entityError);
+    }
+
+    const positionId = uuid();
+    Position.addOverride(positionId, {
+      entity: playerEntity,
+      value: { x, y },
+    });
+
+    try {
+      const tx = await worldSend("move", [x, y]);
+      await awaitStreamValue(txReduced$, (txHash) => txHash === tx.hash);
+    } finally {
+      Position.removeOverride(positionId);
+    }
   };
 
   const moveBy = async (deltaX: number, deltaY: number) => {
-    // TODO
-    return null as any;
+    if(!playerEntity) {
+      throw new Error(entityError);
+    }
+
+    const playerPosition = getComponentValue(Position, playerEntity);
+    if(!playerPosition) {
+      console.warn("Cannot moveBy without a player position. Have you spawned?");
+      return;
+    }
+
+    await moveTo(playerPosition.x + deltaX, playerPosition.y + deltaY);
   };
 
   const spawn = async (x: number, y: number) => {
-    // TODO
-    return null as any;
+    if(!playerEntity) {
+      throw new Error(entityError);
+    }
+
+    const canSpawn = getComponentValue(Player, playerEntity)?.value !== true;
+    if(!canSpawn) {
+      throw new Error("already spawned!");
+    }
+
+    const positionId = uuid();
+    Position.addOverride(positionId, {
+      entity: playerEntity,
+      value: { x, y },
+    });
+    const playerId = uuid();
+    Player.addOverride(playerId, {
+      entity: playerEntity,
+      value: { value: true },
+    });
+
+    try {
+      const tx = await worldSend("spawn", [x, y]);
+      await awaitStreamValue(txReduced$, (txHash) => txHash === tx.hash);
+    } finally {
+      Position.removeOverride(positionId);
+      Player.removeOverride(playerId);
+    }
   };
 
   const throwBall = async () => {
