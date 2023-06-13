@@ -5,8 +5,40 @@ import { defineComponent, Type as RecsType, World } from "@latticexyz/recs";
 
 export function defineContractComponents(world: World) {
   return {
+    MapConfig: (() => {
+      const tableId = new TableId("", "MapConfig");
+      return defineComponent(
+        world,
+        {
+          width: RecsType.Number,
+          height: RecsType.Number,
+          terrain: RecsType.String,
+        },
+        {
+          metadata: {
+            contractId: tableId.toHexString(),
+            tableId: tableId.toString(),
+          },
+        }
+      );
+    })(),
     Moveable: (() => {
       const tableId = new TableId("", "Moveable");
+      return defineComponent(
+        world,
+        {
+          value: RecsType.Boolean,
+        },
+        {
+          metadata: {
+            contractId: tableId.toHexString(),
+            tableId: tableId.toString(),
+          },
+        }
+      );
+    })(),
+    Obstruction: (() => {
+      const tableId = new TableId("", "Obstruction");
       return defineComponent(
         world,
         {
